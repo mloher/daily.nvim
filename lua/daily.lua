@@ -25,10 +25,11 @@ local function open_daily(offset)
   -- Check if file exists, if not, copy template
   -- local f = io.open(file, "r")
   local template_path = vim.fn.expand(config.template)
-  if vim.fn.filereadable(file) == 0 and vim.fn.template_path then
+  if vim.fn.filereadable(file) == 0 and vim.fn.filereadable(template_path) ~= 0 then
+    print("in if")
     vim.fn.system(string.format("cp %s %s", template_path, file))
     vim.cmd(string.format("edit %s", file))
-    vim.cmd(":%s/<DAILY_CURRENT_DATE>/" .. date_string .."/g") 
+    vim.cmd(":silent! %s/<DAILY_CURRENT_DATE>/" .. date_string .."/g") 
     vim.cmd(":w")
   else
     vim.cmd(string.format("edit %s", file))
