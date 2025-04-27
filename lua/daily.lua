@@ -36,6 +36,63 @@ local function open_daily(offset)
   end
 end
 
+local function grep_for()
+  if(require('telescope.builtin')) then
+    local builtin = require('telescope.builtin')
+    builtin.live_grep({
+      search_dirs = {config.root_folder},
+      default_text = "";
+    })
+  end
+end
+
+local function search_tags()
+  local output = vim.fn.systemlist({
+    "rg", "-o", "--no-filename","--pcre2", "#\\w+", vim.fn.expand(config.root_folder)
+  })
+
+  -- Remove duplicates
+  local seen = {}
+  local tags = {}
+  for _, tag in ipairs(output) do
+    if not seen[tag] then
+      seen[tag] = true
+      table.insert(tags, tag)
+    end
+  end
+
+  -- Open Telescope picker
+  require('telescope.pickers').new({}, {
+    prompt_title = "Pick a Hashtag",
+    finder = require('telescope.finders').new_table {
+      results = tags
+    },
+    sorter = require('telescope.config').values.generic_sorter({}),
+    attach_mappings = function(prompt_bufnr, map)
+      local actions = require('telescope.actions')
+      local action_state = require('telescope.actions.state')
+
+      map('i', '<CR>', function()
+        local selected = action_state.get_selected_entry()
+        actions.close(prompt_bufnr)
+
+        -- After picking, search for that hashtag
+        require('telescope.builtin').live_grep({
+          search_dirs = { config.root_folder },
+          default_text = selected[1],
+          prompt_title = "Search results for " .. selected[1],
+          -- additional_args = function()
+          --  return { "--pcre2", "-e", "#\\w+" }
+          -- end,
+        })
+      end)
+
+      return true
+    end,
+  }):find()
+end
+
+
 function M.setup(opts)
   -- Merge user options with default config
   config = vim.tbl_deep_extend("force", config, opts or {})
@@ -45,11 +102,19 @@ function M.setup(opts)
       open_daily(tonumber(args.args))
     elseif (args.args ~= nil and args.args ~= "") then
       -- TODO: integration with telescope (find in daily)
-      print("TODO arg is a tring")
+      grep_for(args.args)
     elseif (args.args == "" or args.args == nil) then
       open_daily(0)        -- open today
     end
   end, { nargs = "?" })
+
+  vim.api.nvim_create_user_command("DailyGrep", function(args)
+    grep_for()
+  end, {nargs = 0} )
+
+  vim.api.nvim_create_user_command("DailyTags", function(args)
+    search_tags()
+  end, {nargs = 0} )
 end
 
 return M
