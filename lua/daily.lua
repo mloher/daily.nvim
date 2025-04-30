@@ -2,7 +2,8 @@ local M = {}
 
 local config = {
   root_folder = "~/notes",
-  template = "~/notes/template.md"
+  template = "~/notes/template.md",
+  titled_notes_subfolder = "titled"
 }
 
 local function open_daily(offset)
@@ -92,6 +93,19 @@ local function search_tags()
   }):find()
 end
 
+local function open_titled(name)
+
+  -- Create directory if it doesn't exist
+  local dir = vim.fn.expand(string.format("%s/%s", config.root_folder, config.titled_notes_subfolder))
+  vim.fn.mkdir(dir, "p")
+
+  -- Create file path
+  local file = string.format("%s/%s.md", dir, name)
+  vim.cmd(string.format("edit %s", file))
+end
+
+
+
 
 function M.setup(opts)
   -- Merge user options with default config
@@ -115,6 +129,11 @@ function M.setup(opts)
   vim.api.nvim_create_user_command("DailyTags", function(args)
     search_tags()
   end, {nargs = 0} )
+
+  vim.api.nvim_create_user_command("DailyTitled", function(args)
+    open_titled(args.args)
+  end, {nargs = 1} )
+
 end
 
 return M
